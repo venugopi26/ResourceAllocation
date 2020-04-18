@@ -1,0 +1,108 @@
+<!DOCTYPE mapper  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.position2.api.MapperInterface">	
+	<resultMap id="UserResultMap" type="com.position2.model.ResourceResponse">
+		<id column="EMP_ID" property="id" />
+		<result column="NAME" property="name" />
+		<result column="POSITION" property="position" />
+		<result column="MANGER_ID" property="managerId" />		
+		<collection property="project" resultMap="ProjectResult" javaType="List" />		
+	</resultMap>
+	
+	<resultMap id="ProjectResult" type="com.position2.model.ProjectResponse">
+		<result column="ALLOC_ID" property="id" />
+		<result column="TS_ID" property="taskId" />
+		<result column="PRJ_ID" property="projectId" />
+		<result column="PROJECT_NAME" property="projectName" />
+		<result column="TASK_NAME" property="taskName" />				
+		<result column="TASK_START_DATE" property="taskSartDate" />	
+		<result column="TASK_END_DATE" property="taskEndDate" />	
+		<collection property="allocation" resultMap="AllocationResult" javaType="List" />		
+	</resultMap>
+	
+	<resultMap id="AllocationResult" type="com.position2.model.AllocationResponse">
+		<id column="RC_ID" property="id" />
+		<result column="ALLOCATION_DATETIME" property="allocationDateTime" javaType="java.util.Date"/>
+		<result column="NUMBER_OF_HOURS" property="numberOfHours" />										
+	</resultMap>
+	
+
+
+	<select id="getAll" resultMap="UserResultMap">
+		SELECT 
+			EMP.ID AS EMP_ID,
+			EMP.NAME,
+			EMP.POSITION,
+			EMP.MANGER_ID,
+			PRJ.ID AS PRJ_ID,
+			PRJ.PROJECT_NAME AS PROJECT_NAME,
+			TS.ID AS TS_ID,
+			TS.TASK_NAME AS TASK_NAME,
+			TS.TASK_START_DATE AS TASK_START_DATE,
+			TS.TASK_END_DATE AS TASK_END_DATE,
+			RC.ID AS RC_ID,
+			RC.ALLOCATION_DATETIME AS ALLOCATION_DATETIME,
+			RC.NUMBER_OF_HOURS AS NUMBER_OF_HOURS,
+			RC.RESOUCRCE_ID AS RESOUCRCE_ID,
+			ALLOC.ID AS ALLOC_ID
+				FROM
+		(SELECT
+			ID,
+			EMPLOYEE_ID,
+			PROJECT_ID,
+			TASK_ID 
+					FROM RESOURCE_ALLOCATION 
+					<where>
+						 MANAGER_ID = #{id} 
+						<!--  <if test="null != size">
+						 	 limit #{size}
+						 </if>						
+						 <if test="0 != pageNum">
+						 	OFFSET #{pageNum}
+						 </if>	 -->					 
+					</where>) AS ALLOC
+		LEFT JOIN EMPLOYEE EMP ON ALLOC.EMPLOYEE_ID = EMP.ID
+		LEFT JOIN PROJECT PRJ ON ALLOC.PROJECT_ID = PRJ.ID
+		LEFT JOIN TASK TS ON ALLOC.TASK_ID = TS.ID
+		LEFT JOIN RESOURCE_CALENDER RC ON ALLOC.ID = RC.RESOUCRCE_ID;
+	</select>
+	
+	<select id="getAll_count" resultType="int">
+		SELECT COUNT(*) FROM EMPLOYEE WHERE ID IN( SELECT EMPLOYEE_ID FROM RESOURCE_ALLOCATION WHERE MANAGER_ID=#{id});		
+	</select>
+	
+	<insert id="allocationCreate" parameterType="com.position2.model.AllocationResponse" useGeneratedKeys="true" keyProperty="id">        
+        INSERT INTO RESOURCE_CALENDER (ID,ALLOCATION_DATETIME,NUMBER_OF_HOURS,RESOUCRCE_ID) VALUES (#{id},#{allocationDateTime},#{numberOfHours},#{resourceId})
+    </insert>
+    
+     <update id="allocationEdit" parameterType="com.position2.model.AllocationResponse" useGeneratedKeys="true" keyProperty="id">
+      	UPDATE RESOURCE_CALENDER SET ALLOCATION_DATETIME = #{allocationDateTime}, NUMBER_OF_HOURS= #{numberOfHours} WHERE ID = #{id};      
+     </update>
+     
+     <insert id="allocationEmployeeCreate" parameterType="com.position2.model.ResourceAllocation" useGeneratedKeys="true" keyProperty="id">                
+        INSERT INTO RESOURCE_ALLOCATION (ID,EMPLOYEE_ID,PROJECT_ID,TASK_ID,MANAGER_ID) VALUES (#{id},#{employeeId},#{projectId},#{taskId},#{managerId})
+    </insert>
+	
+	 <insert id="createEmployee" parameterType="com.position2.model.Employee" useGeneratedKeys="true" keyProperty="id">                        
+        INSERT INTO EMPLOYEE (ID,EMPLOYEE_ID,PROJECT_ID,TASK_ID,MANAGER_ID) VALUES (#{id},#{name},#{position},#{managerId})
+    </insert>
+    
+    <insert id="createProject" parameterType="com.position2.model.Project" useGeneratedKeys="true" keyProperty="id">                                
+        INSERT INTO PROJECT (ID,PROJECT_NAME) VALUES (#{id},#{projectName})
+    </insert>
+    
+    <insert id="createTask" parameterType="com.position2.model.Task" useGeneratedKeys="true" keyProperty="id">                                
+        INSERT INTO TASK (ID,TASK_NAME,PROJECT_ID,TASK_START_DATE,TASK_END_DATE) VALUES (#{id},#{taskName},#{projectId},#{taskStartDate},#{taskEndDate})
+    </insert>
+	
+	<select id="getAllocationDetailsById" resultMap="AllocationResponseResult">
+		SELECT ID,ALLOCATION_DATETIME,NUMBER_OF_HOURS,RESOUCRCE_ID FROM RESOURCE_CALENDER WHERE ID = #{id}			
+	</select>
+	
+	<resultMap id="AllocationResponseResult" type="com.position2.model.AllocationResponse">
+		<id column="ID" property="id" />
+		<result column="ALLOCATION_DATETIME" property="allocationDateTime" javaType="java.util.Date"/>
+		<result column="NUMBER_OF_HOURS" property="numberOfHours" />		
+		<result column="RESOUCRCE_ID" property="resourceId" />						
+	</resultMap>
+	
+</mapper>
